@@ -23,6 +23,7 @@
       top: 10px;
       left: 10px;
       font-size: 20px;
+      display: none;
     }
     #levelUpMsg {
       position: absolute;
@@ -36,11 +37,38 @@
       transition: opacity 1s ease;
       pointer-events: none;
     }
+    #startScreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 20px;
+    }
+    #startButton {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 20px;
+      background: gold;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
   <div id="scoreboard">점수: 0 | 단계: 1</div>
   <div id="levelUpMsg">LEVEL UP!</div>
+  <div id="startScreen">
+    <div>게임 방법: 마우스를 움직여서 바구니로 떨어지는 별을 잡으세요!</div>
+    <button id="startButton">게임 시작</button>
+  </div>
   <canvas id="gameCanvas" width="400" height="600"></canvas>
 
   <script>
@@ -48,15 +76,19 @@
     const ctx = canvas.getContext("2d");
     const scoreboard = document.getElementById("scoreboard");
     const levelUpMsg = document.getElementById("levelUpMsg");
+    const startScreen = document.getElementById("startScreen");
+    const startButton = document.getElementById("startButton");
 
-    let player = { x: 180, y: 550, width: 40, height: 20, speed: 20 };
+    let player = { x: 180, y: 550, width: 60, height: 20 };
     let stars = [];
     let score = 0;
     let level = 1;
     let starSpeed = 2;
     let startTime = Date.now();
+    let gameRunning = false;
 
     function createStar() {
+      if (!gameRunning) return;
       const x = Math.random() * (canvas.width - 10);
       stars.push({ x: x, y: 0, radius: 5 });
     }
@@ -107,32 +139,42 @@
         if (score >= 5 * level) {
           level++;
           starSpeed += 1; // 속도 증가
-          showLevelUp(); // 레벨업 연출
+          showLevelUp();
         }
-        startTime = currentTime; // 시간 초기화
+        startTime = currentTime;
       }
     }
 
-    function draw() {
+    function gameLoop() {
+      if (!gameRunning) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawPlayer();
       drawStars();
       updateStars();
       updateLevel();
       scoreboard.innerText = `점수: ${score} | 단계: ${level}`;
-      requestAnimationFrame(draw);
+      requestAnimationFrame(gameLoop);
     }
 
-    document.addEventListener("keydown", e => {
-      if (e.key === "ArrowLeft" && player.x > 0) {
-        player.x -= player.speed;
-      } else if (e.key === "ArrowRight" && player.x < canvas.width - player.width) {
-        player.x += player.speed;
-      }
+    // 마우스로 플레이어 이동
+    canvas.addEventListener("mousemove", e => {
+      if (!gameRunning) return;
+      const rect = canvas.getBoundingClientRect();
+      let mouseX = e.clientX - rect.left;
+      player.x = mouseX - player.width / 2;
+
+      // 화면 밖으로 나가지 않게 제한
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
     });
 
-    setInterval(createStar, 1000);
-    draw();
+    startButton.addEventListener("click", () => {
+      startScreen.style.display = "none";
+      scoreboard.style.display = "block";
+      gameRunning = true;
+      setInterval(createStar, 1000);
+      gameLoop();
+    });
   </script>
 </body>
 </html>
